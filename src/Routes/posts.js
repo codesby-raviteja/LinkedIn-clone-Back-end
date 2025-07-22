@@ -54,10 +54,13 @@ postsRouter.get("/posts", userAuth, async (req, res) => {
     const skip = (page - 1) * 15;
     const limit = 15;
 
+    const populateSaveDetails = "firstName lastName profileImage headline";
+
     const posts = await PostsModel.find({})
       .skip(skip)
       .limit(limit)
-      .populate("author", "firstName lastName profileImage headline")
+      .populate("author", populateSaveDetails)
+      .populate("comments.user", populateSaveDetails)
       .sort({ createdAt: -1 });
 
     // const posts = await PostsModel.find({ author: { $ne: user._id } })
@@ -108,15 +111,15 @@ postsRouter.patch("/post/comment/:postId", userAuth, async (req, res) => {
   try {
     const { postId } = req.params;
     const user = req.user;
-    const { content } = req.body;
+    const { comment } = req.body;
 
-    if (!content.trim()) {
+    if (!comment.trim()) {
       return res
         .status(400)
         .json({ status: 400, error: "comment cannot be empty" });
     }
 
-    const post = await PostsModel.findById({ id: postId });
+    const post = await PostsModel.findById(postId);
 
     if (!post) {
       return res
@@ -126,12 +129,18 @@ postsRouter.patch("/post/comment/:postId", userAuth, async (req, res) => {
 
     post.comments.push({
       user: user._id,
-      content: content,
+      content: comment,
     });
 
     await post.save();
 
-    res.status(200).json({ data: post, message: "successfully comment added" });
+    const updatedPost = await PostsModel.findById(postId)
+      .populate("comments.user", "firstName lastName profileImage headline")
+      .sort({ comments: -1 });
+
+    res
+      .status(200)
+      .json({ data: updatedPost, message: "successfully comment added" });
   } catch (error) {
     console.log("Post comment handler");
     console.log(error);
