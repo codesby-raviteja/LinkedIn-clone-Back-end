@@ -3,6 +3,7 @@ import userAuth from "../Middlewares/userAuth.js";
 import PostsModel from "../Models/posts.js";
 import upload from "../Middlewares/multer.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
+import io from "../app.js";
 
 const postsRouter = express.Router();
 
@@ -79,11 +80,14 @@ postsRouter.patch("/post/like/:postId", userAuth, async (req, res) => {
     const { postId } = req.params;
     const user = req.user;
     let likeStatus = "liked";
+     const populateSaveDetails = "firstName lastName profileImage headline";
 
-    const post = await PostsModel.findById(postId).populate(
-      "author",
-      "firstName lastName profileImage headline"
-    );
+
+
+    const post = await PostsModel.findById(postId).populate("comments.user", populateSaveDetails)
+      .populate("author", populateSaveDetails)
+
+
     if (!post) {
       return res
         .status(404)
@@ -100,6 +104,8 @@ postsRouter.patch("/post/like/:postId", userAuth, async (req, res) => {
     }
     await post.save();
 
+    io.emit("receivedUpdate", post);
+
     res.status(200).json({ message: `${likeStatus} the post`, data: post });
   } catch (error) {
     console.log("POST LIKE ROUTER");
@@ -112,6 +118,8 @@ postsRouter.patch("/post/comment/:postId", userAuth, async (req, res) => {
     const { postId } = req.params;
     const user = req.user;
     const { comment } = req.body;
+
+    const populateSaveDetails = "firstName lastName profileImage headline";
 
     if (!comment.trim()) {
       return res
@@ -135,9 +143,11 @@ postsRouter.patch("/post/comment/:postId", userAuth, async (req, res) => {
     await post.save();
 
     const updatedPost = await PostsModel.findById(postId)
-      .populate("comments.user", "firstName lastName profileImage headline")
+      .populate("comments.user", populateSaveDetails)
+      .populate("author", populateSaveDetails)
       .sort({ comments: -1 });
 
+    io.emit("receivedUpdate", updatedPost);
     res
       .status(200)
       .json({ data: updatedPost, message: "successfully comment added" });

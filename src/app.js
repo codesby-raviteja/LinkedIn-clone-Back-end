@@ -1,40 +1,50 @@
-import express from "express"
-import dotenv from "dotenv"
-import connectDB from "./config/database.js"
-import authRouter from "./Routes/auth.js"
-import cors from "cors"
-import cookieParser from "cookie-parser"
-import profileRoute from "./Routes/profile.js"
-import postsRouter from "./Routes/posts.js"
-dotenv.config()
+import express from "express";
+import dotenv from "dotenv";
+import connectDB from "./config/database.js";
+import authRouter from "./Routes/auth.js";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import profileRoute from "./Routes/profile.js";
+import postsRouter from "./Routes/posts.js";
+import { createServer } from "http";
+import initializeSocket from "./utils/socket.js";
+import connectionsRouter from "./Routes/connectionsRoute.js";
+dotenv.config();
 
-const app = express() // Creating an instance of the expresss
+const app = express(); // Creating an instance of the expresss
 
-let PORT = process.env.PORT || 5000
+const httpServer = createServer(app);
 
-app.use(express.json())
-app.use(cookieParser())
+const io = initializeSocket(httpServer);
+
+let PORT = process.env.PORT || 5000;
+
+app.use(express.json());
+app.use(cookieParser());
 
 app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
   })
-)
+);
 
-app.use("/", authRouter)
+app.use("/", authRouter);
 
-app.use("/", profileRoute)
-app.use("/",postsRouter)
+app.use("/", profileRoute);
+app.use("/", postsRouter);
+app.use("/", connectionsRouter);
 
 connectDB()
   .then(() => {
-    console.log("Database connection was successfull")
-    app.listen(PORT, () => {
-      console.log(`server started listening at ${PORT}`)
-    })
+    console.log("Database connection was successfull");
+    httpServer.listen(PORT, () => {
+      console.log(`server started listening at ${PORT}`);
+    });
   })
   .catch((err) => {
-    console.log(err.message)
-    console.log("Database connection was not succesfull")
-  })
+    console.log(err.message);
+    console.log("Database connection was not succesfull");
+  });
+
+export default io;

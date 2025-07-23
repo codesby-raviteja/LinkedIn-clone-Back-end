@@ -1,9 +1,43 @@
 import express from "express";
-import userAuth from "../Middlewares/userAuth";
-import ConnectionsModel from "../Models/connectionsSchema";
-import User from "../Models/user";
+import userAuth from "../Middlewares/userAuth.js";
+import ConnectionsModel from "../Models/connectionsSchema.js";
+import User from "../Models/user.js";
 
 const connectionsRouter = express.Router();
+
+connectionsRouter.get(
+  "/check/connection/:toUserId",
+  userAuth,
+  async (req, res) => {
+    try {
+      const { toUserId } = req.params;
+
+      const user = req.user;
+
+      const isConnectionExist = await ConnectionsModel.findOne({
+        $or: [
+          { toUserId, fromUserId: user._id },
+          { fromUserId: toUserId, toUserId: user._id },
+        ],
+      });
+
+      if (isConnectionExist) {
+        return res
+          .status(200)
+          .json({ message: "connection exists", connectionExists: true });
+      }
+      return res
+        .status(200)
+        .json({
+          message: "connection does not exists",
+          connectionExists: false,
+        });
+    } catch (error) {
+      console.log("Error in check coonection");
+      console.log(error);
+    }
+  }
+);
 
 connectionsRouter.post("/connect/:toUserId", userAuth, async (req, res) => {
   try {
