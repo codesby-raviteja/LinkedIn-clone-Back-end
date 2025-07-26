@@ -7,8 +7,9 @@ import cookieParser from "cookie-parser";
 import profileRoute from "./Routes/profile.js";
 import postsRouter from "./Routes/posts.js";
 import { createServer } from "http";
-import initializeSocket from "./utils/socket.js";
+import initializeSocket, { setSocket } from "./utils/socket.js";
 import connectionsRouter from "./Routes/connectionsRoute.js";
+
 dotenv.config();
 
 const app = express(); // Creating an instance of the expresss
@@ -16,6 +17,7 @@ const app = express(); // Creating an instance of the expresss
 const httpServer = createServer(app);
 
 const io = initializeSocket(httpServer);
+setSocket(io);
 
 let PORT = process.env.PORT || 5000;
 
@@ -28,6 +30,8 @@ app.use(
     credentials: true,
   })
 );
+
+console.log("RUNNING APP.js");
 
 app.use("/", authRouter);
 
@@ -46,5 +50,3 @@ connectDB()
     console.log(err.message);
     console.log("Database connection was not succesfull");
   });
-
-export default io;

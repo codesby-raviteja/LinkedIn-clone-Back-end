@@ -10,13 +10,20 @@ const initializeSocket = (server) => {
   io.on("connection", (socket) => {
     console.log("socket connected =>", socket.id);
 
-
-
     socket.on("disconnect", (reson) => {
       console.log(`${socket.id} got disconnected`);
     });
   });
-  return io
+  return io;
 };
+
+let socket = null;
+export function getSocket() {
+  return socket;
+}
+
+export function setSocket(io) {
+  socket = io;
+}
 
 export default initializeSocket;
